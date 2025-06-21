@@ -1,0 +1,75 @@
+from fastapi import APIRouter, HTTPException, Query
+from typing import List
+import logging
+
+from app.models.schemas import RecordingResponse, RecordingListResponse
+from app.services.recording_service import recording_service
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.get("/recordings", response_model=RecordingListResponse)
+async def get_recordings(
+    skip: int = Query(0, ge=0, description="Number of recordings to skip"),
+    limit: int = Query(100, ge=1, le=1000, description="Number of recordings to return")
+):
+    """Get all recordings with pagination"""
+    logger.info(f"📋 Fetching recordings list - Skip: {skip}, Limit: {limit}")
+    
+    try:
+        recordings = recording_service.get_recordings(skip=skip, limit=limit)
+        total = recording_service.get_recordings_count()
+        
+        logger.info(f"✅ Retrieved {len(recordings)} recordings out of {total} total")
+        
+        return RecordingListResponse(
+            recordings=[RecordingResponse.from_orm(r) for r in recordings],
+            total=total
+        )
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch recordings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch recordings")
+
+
+@router.get("/recordings/{recording_id}", response_model=RecordingResponse)
+async def get_recording(recording_id: int):
+    """Get a specific recording by ID"""
+    logger.info(f"🔍 Fetching recording with ID: {recording_id}")
+    
+    try:
+        recording = recording_service.get_recording(recording_id)
+        if not recording:
+            logger.warning(f"⚠️  Recording not found: {recording_id}")
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        logger.info(f"✅ Retrieved recording: {recording.original_filename} (Status: {recording.processing_status})")
+        return RecordingResponse.from_orm(recording)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to fetch recording {recording_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch recording")
+
+
+@router.delete("/recordings/{recording_id}")
+async def delete_recording(recording_id: int):
+    """Delete a recording"""
+    logger.info(f"🗑️  Attempting to delete recording with ID: {recording_id}")
+    
+    try:
+        success = recording_service.delete_recording(recording_id)
+        if not success:
+            logger.warning(f"⚠️  Recording not found for deletion: {recording_id}")
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        logger.info(f"✅ Successfully deleted recording: {recording_id}")
+        return {"message": "Recording deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Failed to delete recording {recording_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete recording") 
