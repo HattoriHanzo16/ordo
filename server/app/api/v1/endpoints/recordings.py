@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, Query
 from typing import List
 import logging
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 from app.models.schemas import RecordingResponse, RecordingListResponse
 from app.services.recording_service import recording_service
@@ -19,8 +21,17 @@ async def get_recordings(
     logger.info(f"📋 Fetching recordings list - Skip: {skip}, Limit: {limit}")
     
     try:
-        recordings = recording_service.get_recordings(skip=skip, limit=limit)
-        total = recording_service.get_recordings_count()
+        # Run database operations in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            recordings_task = loop.run_in_executor(
+                executor, recording_service.get_recordings, skip, limit
+            )
+            count_task = loop.run_in_executor(
+                executor, recording_service.get_recordings_count
+            )
+            
+            recordings, total = await asyncio.gather(recordings_task, count_task)
         
         logger.info(f"✅ Retrieved {len(recordings)} recordings out of {total} total")
         
@@ -39,7 +50,13 @@ async def get_recording(recording_id: int):
     logger.info(f"🔍 Fetching recording with ID: {recording_id}")
     
     try:
-        recording = recording_service.get_recording(recording_id)
+        # Run database operation in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            recording = await loop.run_in_executor(
+                executor, recording_service.get_recording, recording_id
+            )
+        
         if not recording:
             logger.warning(f"⚠️  Recording not found: {recording_id}")
             raise HTTPException(status_code=404, detail="Recording not found")
@@ -60,7 +77,13 @@ async def delete_recording(recording_id: int):
     logger.info(f"🗑️  Attempting to delete recording with ID: {recording_id}")
     
     try:
-        success = recording_service.delete_recording(recording_id)
+        # Run database operation in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            success = await loop.run_in_executor(
+                executor, recording_service.delete_recording, recording_id
+            )
+        
         if not success:
             logger.warning(f"⚠️  Recording not found for deletion: {recording_id}")
             raise HTTPException(status_code=404, detail="Recording not found")

@@ -29,7 +29,7 @@ class TranscriptionService:
         
         # Initialize speaker diarization pipeline (requires HuggingFace token)
         self.diarization_pipeline = None
-        self.hf_token = os.getenv("HUGGINFACE_ACCESS_TOKEN")
+        self.hf_token = settings.huggingface_access_token
         if self.hf_token:
             logger.info("🔑 HuggingFace token found - speaker diarization will be available")
         else:
@@ -39,13 +39,15 @@ class TranscriptionService:
         """Initialize the speaker diarization pipeline"""
         if self.hf_token and not self.diarization_pipeline:
             try:
+                # Use the newer token parameter instead of use_auth_token
                 self.diarization_pipeline = Pipeline.from_pretrained(
                     "pyannote/speaker-diarization-3.1",
-                    use_auth_token=self.hf_token
+                    token=self.hf_token
                 )
                 logger.info("✅ Speaker diarization pipeline initialized")
             except Exception as e:
                 logger.error(f"❌ Failed to initialize diarization pipeline: {e}")
+                logger.error(f"❌ Make sure you have accepted user conditions for both pyannote/segmentation-3.0 and pyannote/speaker-diarization-3.1 models")
     
     async def transcribe_media(self, media_url: str, file_content: bytes) -> Dict[str, Any]:
         """
@@ -140,7 +142,7 @@ class TranscriptionService:
             self._initialize_diarization()
             
             if not self.diarization_pipeline:
-                logger.info("⚠️  Speaker diarization not available, returning original transcript")
+                logger.info("⚠️  Speaker diarization not available (no HuggingFace token), returning original transcript")
                 return whisper_response.text
             
             logger.info("👥 Performing speaker diarization...")
@@ -148,12 +150,19 @@ class TranscriptionService:
             # Run diarization
             diarization = self.diarization_pipeline(audio_file_path)
             
+            # Debug: log diarization results
+            speaker_count = len(set(speaker for _, _, speaker in diarization.itertracks(yield_label=True)))
+            logger.info(f"🎯 Detected {speaker_count} unique speakers")
+            
             # Get word-level timestamps from Whisper
             words = whisper_response.words if hasattr(whisper_response, 'words') else []
             
             if not words:
-                logger.info("📝 No word-level timestamps available, returning original transcript")
-                return whisper_response.text
+                logger.info("📝 No word-level timestamps available, using segment-based diarization")
+                # Fallback: Use segment-based diarization without word alignment
+                return self._create_segment_based_transcript(diarization, whisper_response.text)
+            
+            logger.info(f"📝 Processing {len(words)} words for speaker alignment")
             
             # Combine diarization with transcript
             diarized_transcript = []
@@ -185,12 +194,65 @@ class TranscriptionService:
                 diarized_transcript.append(speaker_text)
             
             result = "\n\n".join(diarized_transcript)
+            
+            # Check if we actually have multiple speakers
+            if speaker_count <= 1:
+                logger.info("⚠️  Only one speaker detected, speaker diarization may not be meaningful")
+                result = f"[Speaker A]: {whisper_response.text}"
+            
             logger.info("✅ Speaker diarization completed")
             return result
             
         except Exception as e:
             logger.error(f"❌ Speaker diarization failed: {e}")
+            logger.error(f"❌ Error details: {str(e)}")
             return whisper_response.text
+    
+    def _create_segment_based_transcript(self, diarization, original_text: str) -> str:
+        """Create a segment-based transcript when word-level timestamps aren't available"""
+        try:
+            segments = []
+            for segment, _, speaker in diarization.itertracks(yield_label=True):
+                duration = segment.end - segment.start
+                segments.append({
+                    'start': segment.start,
+                    'end': segment.end,
+                    'speaker': speaker,
+                    'duration': duration
+                })
+            
+            if not segments:
+                return f"[Speaker A]: {original_text}"
+            
+            # Simple approximation: divide text proportionally by time
+            total_duration = sum(s['duration'] for s in segments)
+            words = original_text.split()
+            
+            result = []
+            word_index = 0
+            
+            for segment in segments:
+                proportion = segment['duration'] / total_duration
+                words_for_segment = max(1, int(len(words) * proportion))
+                
+                segment_words = words[word_index:word_index + words_for_segment]
+                if segment_words:
+                    segment_text = f"[Speaker {segment['speaker']}]: {' '.join(segment_words)}"
+                    result.append(segment_text)
+                
+                word_index += words_for_segment
+            
+            # Add any remaining words to the last speaker
+            if word_index < len(words):
+                remaining_words = words[word_index:]
+                if result and remaining_words:
+                    result[-1] += f" {' '.join(remaining_words)}"
+            
+            return "\n\n".join(result)
+            
+        except Exception as e:
+            logger.error(f"❌ Segment-based transcript creation failed: {e}")
+            return f"[Speaker A]: {original_text}"
     
     def _get_speaker_at_time(self, diarization, timestamp: float) -> str:
         """Get the speaker who is talking at a specific timestamp"""

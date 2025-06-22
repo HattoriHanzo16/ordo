@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # OpenAI Settings
     openai_api_key: Optional[str] = None
     
+    # HuggingFace Settings (for speaker diarization)
+    huggingface_access_token: Optional[str] = None
+    
     # Database Settings (PostgreSQL via Supabase)
     database_url: Optional[str] = None
     postgres_db: Optional[str] = None

@@ -10,6 +10,7 @@ from app.services.recording_service import recording_service
 from app.services.transcription_service import transcription_service
 from app.services.analysis_service import analysis_service
 
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -82,6 +83,9 @@ async def process_transcription(recording_id: int, media_url: str, file_content:
                     status="completed"
                 )
                 logger.info(f"✅ Analysis completed for recording {recording_id}")
+            
+            # Embeddings processing removed - using simple text search instead
+            logger.info(f"✅ Processing completed for recording {recording_id} (transcription + analysis)")
             
     except Exception as e:
         logger.error(f"❌ Processing failed for recording {recording_id}: {e}")

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import upload, health, recordings
+from app.api.v1.endpoints import upload, health, recordings, search
 
 api_router = APIRouter()
 
@@ -11,4 +11,7 @@ api_router.include_router(health.router, tags=["health"])
 api_router.include_router(upload.router, tags=["upload"])
 
 # Include recordings endpoints
-api_router.include_router(recordings.router, tags=["recordings"]) 
+api_router.include_router(recordings.router, tags=["recordings"])
+
+# Include search endpoints
+api_router.include_router(search.router, tags=["search"]) 

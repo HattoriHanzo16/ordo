@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Float, JSON
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models.database import Base
@@ -26,4 +27,7 @@ class Recording(Base):
     processing_error = Column(Text)
     duration = Column(Float)  # Duration in seconds
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship to text chunks (using lazy loading to avoid circular imports)
+    # Embeddings functionality removed - using simple text search instead 

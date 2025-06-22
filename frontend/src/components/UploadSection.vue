@@ -53,7 +53,8 @@
         class="relative border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-primary-400 transition-colors duration-300"
         :class="{
           'border-primary-500 bg-primary-50': isDragging,
-          'border-red-400 bg-red-50': hasError
+          'border-red-400 bg-red-50': hasError,
+          'border-green-400 bg-green-50': hasSuccess
         }"
         @drop.prevent="handleDrop"
         @dragover.prevent="handleDragOver"
@@ -165,6 +166,16 @@
           </button>
         </div>
         
+        <!-- Success Message -->
+        <div v-if="successMessage" class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div class="flex items-center space-x-2">
+            <svg class="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <p class="text-green-700">{{ successMessage }}</p>
+          </div>
+        </div>
+        
         <!-- Error Message -->
         <div v-if="errorMessage" class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
           <div class="flex items-center space-x-2">
@@ -216,7 +227,9 @@ export default {
       uploadedFiles: [],
       isUploading: false,
       errorMessage: '',
+      successMessage: '',
       hasError: false,
+      hasSuccess: false,
       nextFileId: 1,
       allowedTypes: [
         'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/m4a', 'audio/flac', 'audio/aac',
@@ -345,10 +358,18 @@ export default {
         // Clear uploading files
         this.uploadingFiles = []
         
-        // Show success message
+        // Show success message and redirect to recordings
         if (result.failed_uploads > 0) {
           this.showError(`${result.successful_uploads} files uploaded successfully, ${result.failed_uploads} failed`)
+        } else {
+          // Show success notification
+          this.showSuccessMessage(`${result.successful_uploads} file(s) uploaded successfully! Redirecting to recordings...`)
         }
+        
+        // Redirect to recordings page after a short delay to show success
+        setTimeout(() => {
+          this.$router.push('/recordings')
+        }, 2000)
         
       } catch (error) {
         console.error('Upload error:', error)
@@ -465,17 +486,32 @@ export default {
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     },
     
-    showError(message) {
+        showError(message) {
       this.errorMessage = message
       this.hasError = true
+      this.hasSuccess = false
       setTimeout(() => {
         this.clearError()
       }, 5000)
     },
     
+    showSuccessMessage(message) {
+      this.successMessage = message
+      this.hasSuccess = true
+      this.hasError = false
+      setTimeout(() => {
+        this.clearSuccess()
+      }, 3000)
+    },
+
     clearError() {
       this.errorMessage = ''
       this.hasError = false
+    },
+    
+    clearSuccess() {
+      this.successMessage = ''
+      this.hasSuccess = false
     },
     
     clearUploaded() {

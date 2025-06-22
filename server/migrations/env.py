@@ -14,6 +14,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.models.database import Base
 from app.core.config import settings
 
+# Import all models so Alembic can detect them
+from app.models.recording import Recording
+# TextChunk removed - embeddings functionality removed
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

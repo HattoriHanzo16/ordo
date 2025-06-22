@@ -222,27 +222,47 @@
             </div>
 
             <!-- Processing State -->
-            <div v-else-if="recording.processing_status === 'processing'" class="mb-4">
+            <div v-if="isProcessing(recording.processing_status)" class="mb-4">
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <p class="text-sm text-blue-700 flex items-center">
                   <svg class="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Processing transcript...
+                  {{ getProcessingMessage(recording.processing_status) }}
+                </p>
+                
+                <!-- Processing Progress Bar -->
+                <div class="mt-2 bg-blue-200 rounded-full h-1.5">
+                  <div 
+                    class="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                    :style="{ width: getProcessingProgress(recording.processing_status) + '%' }"
+                  ></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Pending State -->
+            <div v-else-if="recording.processing_status === 'pending'" class="mb-4">
+              <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p class="text-sm text-yellow-700 flex items-center">
+                  <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                  Queued for processing...
                 </p>
               </div>
             </div>
 
             <!-- Action Buttons -->
             <div class="flex gap-2">
-              <button 
-                v-if="recording.processing_status === 'completed' && recording.transcript"
-                @click="viewRecording(recording)"
-                class="flex-1 btn-primary text-sm py-2"
+              <router-link 
+                v-if="recording.processing_status === 'completed'"
+                :to="`/recordings/${recording.id}`"
+                class="flex-1 btn-primary text-sm py-2 text-center no-underline"
               >
-                View Transcript
-              </button>
+                View Details
+              </router-link>
               <button 
                 v-if="recording.media_url"
                 @click="playRecording(recording)"
@@ -294,7 +314,8 @@ export default {
       statusFilter: '',
       currentPage: 0,
       pageSize: 12,
-      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+      apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+      pollingInterval: null
     }
   },
   computed: {
@@ -335,7 +356,9 @@ export default {
     },
     
     processingCount() {
-      return this.recordings.filter(r => r.processing_status === 'processing').length
+      return this.recordings.filter(r => 
+        ['pending', 'processing', 'analyzing'].includes(r.processing_status)
+      ).length
     },
     
     totalDuration() {
@@ -365,6 +388,8 @@ export default {
       await this.fetchRecordings()
     },
     
+    // Removed auto-polling - users can manually refresh if needed
+    
     async deleteRecording(recordingId) {
       if (!confirm('Are you sure you want to delete this recording? This action cannot be undone.')) {
         return
@@ -388,12 +413,7 @@ export default {
       }
     },
     
-    viewRecording(recording) {
-      // You can implement a modal or navigate to a detailed view
-      console.log('View recording:', recording)
-      // For now, let's just show an alert with the transcript
-      alert(recording.transcript)
-    },
+
     
     playRecording(recording) {
       // Open the audio file in a new tab or implement an audio player
@@ -447,18 +467,44 @@ export default {
     formatStatus(status) {
       const statusMap = {
         'completed': 'Completed',
-        'processing': 'Processing',
+        'processing': 'Transcribing',
+        'analyzing': 'Analyzing',
         'pending': 'Pending',
+        'failed': 'Failed',
         'error': 'Error'
       }
       return statusMap[status] || status
+    },
+    
+    isProcessing(status) {
+      return ['processing', 'analyzing'].includes(status)
+    },
+    
+    getProcessingMessage(status) {
+      const messages = {
+        'processing': 'Transcribing audio...',
+        'analyzing': 'Analyzing content & creating embeddings...'
+      }
+      return messages[status] || 'Processing...'
+    },
+    
+    getProcessingProgress(status) {
+      const progress = {
+        'pending': 0,
+        'processing': 60,
+        'analyzing': 90,
+        'completed': 100
+      }
+      return progress[status] || 0
     },
     
     getStatusBadgeClass(status) {
       const classes = {
         'completed': 'bg-green-100 text-green-800',
         'processing': 'bg-blue-100 text-blue-800',
+        'analyzing': 'bg-purple-100 text-purple-800',
         'pending': 'bg-yellow-100 text-yellow-800',
+        'failed': 'bg-red-100 text-red-800',
         'error': 'bg-red-100 text-red-800'
       }
       return classes[status] || 'bg-gray-100 text-gray-800'
@@ -468,7 +514,9 @@ export default {
       const classes = {
         'completed': 'bg-green-400',
         'processing': 'bg-blue-400',
+        'analyzing': 'bg-purple-400',
         'pending': 'bg-yellow-400',
+        'failed': 'bg-red-400',
         'error': 'bg-red-400'
       }
       return classes[status] || 'bg-gray-400'
@@ -487,5 +535,13 @@ export default {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.no-underline {
+  text-decoration: none;
+}
+
+.no-underline:hover {
+  text-decoration: none;
 }
 </style> 
