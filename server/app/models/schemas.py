@@ -3,21 +3,6 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
-class FileUploadResponse(BaseModel):
-    """Response model for successful file upload"""
-    message: str
-    file_details: "FileDetails"
-
-
-class MultipleFileUploadResponse(BaseModel):
-    """Response model for multiple file upload"""
-    message: str
-    successful_uploads: int
-    failed_uploads: int
-    file_details: List["FileDetails"]
-    failed_files: List[dict]
-
-
 class FileDetails(BaseModel):
     """File details returned after successful upload"""
     original_filename: str
@@ -26,6 +11,21 @@ class FileDetails(BaseModel):
     file_size: int
     content_type: Optional[str]
     upload_timestamp: str
+
+
+class FileUploadResponse(BaseModel):
+    """Response model for successful file upload"""
+    message: str
+    file_details: FileDetails
+
+
+class MultipleFileUploadResponse(BaseModel):
+    """Response model for multiple file upload"""
+    message: str
+    successful_uploads: int
+    failed_uploads: int
+    file_details: List[FileDetails]
+    failed_files: List[dict]
 
 
 class HealthResponse(BaseModel):
@@ -79,6 +79,7 @@ class RecordingResponse(BaseModel):
     summary: Optional[str]
     action_items: Optional[List[Dict[str, Any]]]
     decisions: Optional[List[Dict[str, Any]]]
+    visual_summary_url: Optional[str]
     
     processing_status: str
     processing_error: Optional[str]

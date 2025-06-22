@@ -1,3 +1,4 @@
+import os
 from pydantic_settings import BaseSettings
 from typing import Optional
 
@@ -6,7 +7,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
     
     # API Settings
-    api_title: str = "File Upload API"
+    api_title: str = "Ordo Audio Processing API"
     api_version: str = "1.0.0"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
@@ -16,7 +17,7 @@ class Settings(BaseSettings):
     supabase_url: Optional[str] = None
     supabase_key: Optional[str] = None
     supabase_service_key: Optional[str] = None
-    storage_bucket_name: str = "uploads"
+    storage_bucket_name: Optional[str] = None
     
     # OpenAI Settings
     openai_api_key: Optional[str] = None
@@ -31,6 +32,11 @@ class Settings(BaseSettings):
     postgres_password: Optional[str] = None
     postgres_host: Optional[str] = None
     postgres_port: int = 5432
+    
+    # Redis (for task queue)
+    redis_host: str = "localhost"
+    redis_port: int = 6379
+    redis_db: int = 0
     
     @property
     def database_connection_string(self) -> str:

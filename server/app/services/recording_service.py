@@ -108,6 +108,32 @@ class RecordingService:
         finally:
             db.close()
     
+    def update_recording(
+        self,
+        recording_id: int,
+        visual_summary_url: Optional[str] = None
+    ) -> Optional[Recording]:
+        """Update recording with additional data like visual summary"""
+        logger.info(f"📝 Updating recording {recording_id}")
+        
+        db = SessionLocal()
+        try:
+            recording = db.query(Recording).filter(Recording.id == recording_id).first()
+            if recording:
+                if visual_summary_url:
+                    recording.visual_summary_url = visual_summary_url
+                recording.updated_at = datetime.utcnow()
+                db.commit()
+                db.refresh(recording)
+                logger.info(f"✅ Recording {recording_id} updated successfully")
+            return recording
+        except Exception as e:
+            logger.error(f"❌ Failed to update recording {recording_id}: {e}")
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
     def get_recording(self, recording_id: int) -> Optional[Recording]:
         """Get a recording by ID"""
         db = SessionLocal()

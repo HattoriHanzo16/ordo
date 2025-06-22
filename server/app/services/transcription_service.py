@@ -4,9 +4,6 @@ import httpx
 import logging
 from typing import Optional, Dict, Any
 from openai import OpenAI
-import torch
-from pyannote.audio import Pipeline
-from pyannote.core import Segment
 import json
 
 from app.core.config import settings
@@ -27,27 +24,44 @@ class TranscriptionService:
             self.openai_client = None
             logger.warning("⚠️  OpenAI API key not configured - transcription will not be available")
         
-        # Initialize speaker diarization pipeline (requires HuggingFace token)
+        # Speaker diarization disabled for Docker stability
         self.diarization_pipeline = None
         self.hf_token = settings.huggingface_access_token
-        if self.hf_token:
-            logger.info("🔑 HuggingFace token found - speaker diarization will be available")
-        else:
-            logger.warning("⚠️  HuggingFace token not found - speaker diarization will not be available")
+        logger.info("⏭️  Speaker diarization disabled for Docker compatibility")
         
     def _initialize_diarization(self):
-        """Initialize the speaker diarization pipeline"""
+        """Initialize the speaker diarization pipeline with memory optimization"""
         if self.hf_token and not self.diarization_pipeline:
             try:
-                # Use the newer token parameter instead of use_auth_token
-                self.diarization_pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.1",
-                    token=self.hf_token
-                )
-                logger.info("✅ Speaker diarization pipeline initialized")
+                logger.info("🔧 Initializing diarization pipeline with CPU optimization...")
+                
+                # Clear any existing torch cache
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+                
+                # Try both token and use_auth_token parameters for compatibility
+                try:
+                    self.diarization_pipeline = Pipeline.from_pretrained(
+                        "pyannote/speaker-diarization-3.1",
+                        use_auth_token=self.hf_token
+                    )
+                except Exception:
+                    # Fallback to token parameter for newer versions
+                    self.diarization_pipeline = Pipeline.from_pretrained(
+                        "pyannote/speaker-diarization-3.1",
+                        token=self.hf_token
+                    )
+                
+                # Force CPU usage and optimize for Docker
+                if hasattr(self.diarization_pipeline, 'to'):
+                    self.diarization_pipeline.to(torch.device('cpu'))
+                
+                logger.info("✅ Speaker diarization pipeline initialized with CPU optimization")
             except Exception as e:
                 logger.error(f"❌ Failed to initialize diarization pipeline: {e}")
                 logger.error(f"❌ Make sure you have accepted user conditions for both pyannote/segmentation-3.0 and pyannote/speaker-diarization-3.1 models")
+                logger.error(f"❌ Visit: https://huggingface.co/pyannote/segmentation-3.0 and https://huggingface.co/pyannote/speaker-diarization-3.1")
     
     async def transcribe_media(self, media_url: str, file_content: bytes) -> Dict[str, Any]:
         """
@@ -107,13 +121,9 @@ class TranscriptionService:
                 logger.info(f"✅ Whisper transcription completed. Duration: {result['duration']}s")
                 logger.debug(f"📝 Transcript length: {len(result['transcript'])} characters")
                 
-                # Perform speaker diarization
-                logger.info("👥 Starting speaker diarization...")
-                diarized_transcript = await self._add_speaker_diarization(
-                    temp_file_path, 
-                    transcript_response
-                )
-                result["transcript_with_speakers"] = diarized_transcript
+                # Skip speaker diarization for now (disabled due to Docker compatibility issues)
+                logger.info("⏭️  Speaker diarization disabled - using original transcript")
+                result["transcript_with_speakers"] = result["transcript"]
                 
             finally:
                 # Clean up temporary file
@@ -147,8 +157,24 @@ class TranscriptionService:
             
             logger.info("👥 Performing speaker diarization...")
             
-            # Run diarization
-            diarization = self.diarization_pipeline(audio_file_path)
+                            # Run diarization with timeout and error handling
+            try:
+                logger.info(f"🎯 Processing audio file: {audio_file_path}")
+                diarization = self.diarization_pipeline(audio_file_path)
+                
+                # Clean up memory immediately after processing
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+                
+            except Exception as diarization_error:
+                logger.error(f"❌ Speaker diarization failed: {diarization_error}")
+                logger.info("📝 Falling back to original transcript without speaker labels")
+                # Clean up memory even on failure
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                gc.collect()
+                return whisper_response.text
             
             # Debug: log diarization results
             speaker_count = len(set(speaker for _, _, speaker in diarization.itertracks(yield_label=True)))

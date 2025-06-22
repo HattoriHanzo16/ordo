@@ -11,6 +11,14 @@ services:
     environment:
       - NODE_ENV=development
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
   backend:
     build:
       context: .
@@ -23,6 +31,54 @@ services:
       - server/.env
     environment:
       - DEBUG=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      # ML Model optimizations
+      - TORCH_HOME=/tmp/torch
+      - HF_HOME=/tmp/huggingface
+      - CUDA_VISIBLE_DEVICES=""
+    depends_on:
+      - redis
+    # Memory limits for ML models
+    mem_limit: 2g
+    shm_size: 512m
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    volumes:
+      - ./server:/app
+    env_file:
+      - server/.env
+    environment:
+      - DEBUG=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      # ML Model optimizations
+      - TORCH_HOME=/tmp/torch
+      - HF_HOME=/tmp/huggingface
+      - CUDA_VISIBLE_DEVICES=""
+      - OMP_NUM_THREADS=1
+      - MKL_NUM_THREADS=1
+      - OPENBLAS_NUM_THREADS=1
+      - VECLIB_MAXIMUM_THREADS=1
+      - NUMEXPR_NUM_THREADS=1
+    depends_on:
+      - redis
+      - backend
+    command: python worker.py
+    # Increase memory and shared memory for ML models
+    mem_limit: 4g
+    memswap_limit: 4g
+    shm_size: 1g
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
 
 volumes:
-  postgres_data: 
+  postgres_data:
+  redis_data: 

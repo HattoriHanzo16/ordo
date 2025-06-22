@@ -22,6 +22,7 @@ class Recording(Base):
     summary = Column(Text)  # Meeting/recording summary
     action_items = Column(JSON)  # List of action items with details
     decisions = Column(JSON)  # List of decisions with owners
+    visual_summary_url = Column(String)  # DALL·E 3 generated visual summary
     
     processing_status = Column(String, default="pending")  # pending, processing, completed, failed
     processing_error = Column(Text)

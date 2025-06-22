@@ -143,6 +143,35 @@
         <div v-else class="grid grid-cols-1 xl:grid-cols-3 gap-8">
           <!-- Left Column - Summary and Analysis -->
           <div class="xl:col-span-2 space-y-6">
+            
+            <!-- Decision Tree -->
+            <div v-if="recording.visual_summary_url" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 class="text-xl font-semibold text-dark-900 mb-4 flex items-center">
+                <svg class="w-6 h-6 text-purple-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                </svg>
+                Decision Tree
+                <span class="ml-2 text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">AI Generated</span>
+              </h2>
+              <div class="relative">
+                <img 
+                  :src="recording.visual_summary_url" 
+                  :alt="`Decision tree for ${recording.original_filename}`"
+                  class="w-full max-w-lg mx-auto rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                  @click="openImageModal"
+                  @error="handleImageError"
+                />
+                <div class="mt-3 text-center">
+                  <p class="text-sm text-dark-600">AI-generated decision flowchart based on action items and decisions</p>
+                  <button 
+                    @click="openImageModal"
+                    class="mt-2 text-sm text-primary-600 hover:text-primary-800 font-medium"
+                  >
+                    View Full Size
+                  </button>
+                </div>
+              </div>
+            </div>
             <!-- Summary -->
             <div v-if="recording.summary" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 class="text-xl font-semibold text-dark-900 mb-4 flex items-center">
@@ -271,6 +300,31 @@
         </div>
       </div>
     </main>
+    
+    <!-- Image Modal -->
+    <div v-if="showImageModal && recording?.visual_summary_url" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50" @click="closeImageModal">
+      <div class="relative max-w-4xl max-h-screen p-4">
+        <button 
+          @click="closeImageModal"
+          class="absolute top-2 right-2 text-white hover:text-gray-300 z-10"
+        >
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+        <img 
+          :src="recording.visual_summary_url" 
+          :alt="`Decision tree for ${recording.original_filename}`"
+          class="max-w-full max-h-full object-contain rounded-lg"
+          @click.stop
+        />
+        <div class="absolute bottom-4 left-4 right-4 text-center">
+          <p class="text-white text-sm bg-black bg-opacity-50 rounded px-3 py-2 inline-block">
+            AI-generated decision tree for {{ recording.original_filename }}
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -287,6 +341,7 @@ export default {
       recording: null,
       loading: false,
       error: null,
+      showImageModal: false,
       apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
     }
   },
@@ -434,6 +489,22 @@ export default {
         'low': 'bg-green-100 text-green-800'
       }
       return classes[priority?.toLowerCase()] || 'bg-gray-100 text-gray-800'
+    },
+    
+    openImageModal() {
+      this.showImageModal = true
+    },
+    
+    closeImageModal() {
+      this.showImageModal = false
+    },
+    
+    handleImageError(event) {
+      console.error('Failed to load visual summary image:', event)
+      // Hide the visual summary section if image fails to load
+      if (this.recording) {
+        this.recording.visual_summary_url = null
+      }
     }
   },
   

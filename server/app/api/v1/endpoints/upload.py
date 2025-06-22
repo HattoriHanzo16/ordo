@@ -1,14 +1,13 @@
-from fastapi import APIRouter, File, UploadFile, Depends, BackgroundTasks
+from fastapi import APIRouter, File, UploadFile
 from typing import Any, List
 import logging
-import asyncio
 
 from app.models.schemas import FileUploadResponse, MultipleFileUploadResponse, RecordingResponse
 from app.services.storage_service import storage_service
 from app.services.file_service import file_service
 from app.services.recording_service import recording_service
-from app.services.transcription_service import transcription_service
-from app.services.analysis_service import analysis_service
+from app.services.task_service import task_service
+from app.tasks.processing_tasks import process_transcription_task
 
 
 logger = logging.getLogger(__name__)
@@ -16,85 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-async def process_transcription(recording_id: int, media_url: str, file_content: bytes):
-    """Background task to process transcription and analysis for uploaded media files"""
-    logger.info(f"🎯 Starting background transcription for recording ID: {recording_id}")
-    
-    try:
-        # Update status to processing
-        recording_service.update_transcription(
-            recording_id=recording_id,
-            transcript="",
-            status="processing"
-        )
-        
-        # Perform transcription
-        transcription_result = await transcription_service.transcribe_media(
-            media_url=media_url,
-            file_content=file_content
-        )
-        
-        if transcription_result["error"]:
-            # Update with error
-            recording_service.update_transcription(
-                recording_id=recording_id,
-                transcript="",
-                status="failed",
-                error=transcription_result["error"]
-            )
-            logger.error(f"❌ Transcription failed for recording {recording_id}: {transcription_result['error']}")
-        else:
-            # Update with successful transcription
-            recording_service.update_transcription(
-                recording_id=recording_id,
-                transcript=transcription_result["transcript"],
-                transcript_with_speakers=transcription_result["transcript_with_speakers"],
-                duration=transcription_result["duration"],
-                status="analyzing"  # Set to analyzing status
-            )
-            logger.info(f"✅ Transcription completed for recording {recording_id}")
-            
-            # Now perform analysis
-            logger.info(f"🧠 Starting analysis for recording {recording_id}")
-            
-            analysis_result = await analysis_service.analyze_transcript(
-                transcript=transcription_result["transcript"],
-                transcript_with_speakers=transcription_result["transcript_with_speakers"]
-            )
-            
-            if analysis_result["error"]:
-                # Update with analysis error but keep transcription
-                recording_service.update_analysis(
-                    recording_id=recording_id,
-                    summary=analysis_result.get("summary"),
-                    action_items=analysis_result.get("action_items", []),
-                    decisions=analysis_result.get("decisions", []),
-                    status="completed",  # Still mark as completed since transcription worked
-                    error=f"Analysis failed: {analysis_result['error']}"
-                )
-                logger.warning(f"⚠️  Analysis failed for recording {recording_id}: {analysis_result['error']}")
-            else:
-                # Update with successful analysis
-                recording_service.update_analysis(
-                    recording_id=recording_id,
-                    summary=analysis_result["summary"],
-                    action_items=analysis_result["action_items"],
-                    decisions=analysis_result["decisions"],
-                    status="completed"
-                )
-                logger.info(f"✅ Analysis completed for recording {recording_id}")
-            
-            # Embeddings processing removed - using simple text search instead
-            logger.info(f"✅ Processing completed for recording {recording_id} (transcription + analysis)")
-            
-    except Exception as e:
-        logger.error(f"❌ Processing failed for recording {recording_id}: {e}")
-        recording_service.update_transcription(
-            recording_id=recording_id,
-            transcript="",
-            status="failed",
-            error=str(e)
-        )
+# Background processing moved to app.tasks.processing_tasks
 
 
 def should_transcribe(content_type: str) -> bool:
@@ -109,7 +30,6 @@ def should_transcribe(content_type: str) -> bool:
 
 @router.post("/upload", response_model=RecordingResponse)
 async def upload_file(
-    background_tasks: BackgroundTasks, 
     file: UploadFile = File(...)
 ) -> Any:
     """
@@ -156,12 +76,13 @@ async def upload_file(
         # Start transcription and analysis process if it's an audio/video file
         if should_transcribe(file.content_type or ""):
             logger.info(f"🎤 Scheduling transcription and analysis for {file.filename}")
-            background_tasks.add_task(
-                process_transcription,
+            job_id = task_service.enqueue_task(
+                process_transcription_task,
                 recording.id,
                 file_details['public_url'],
                 file_content
             )
+            logger.info(f"📋 Task queued with job ID: {job_id}")
         else:
             logger.info(f"⏭️  Skipping transcription for {file.content_type} file")
         
@@ -178,7 +99,6 @@ async def upload_file(
 
 @router.post("/upload-multiple", response_model=MultipleFileUploadResponse)
 async def upload_multiple_files(
-    background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...)
 ) -> Any:
     """
@@ -231,12 +151,13 @@ async def upload_multiple_files(
             # Start transcription and analysis process if it's an audio/video file
             if should_transcribe(file.content_type or ""):
                 logger.info(f"🎤 Scheduling transcription and analysis for {file.filename}")
-                background_tasks.add_task(
-                    process_transcription,
+                job_id = task_service.enqueue_task(
+                    process_transcription_task,
                     recording.id,
                     file_details['public_url'],
                     file_content
                 )
+                logger.info(f"📋 Task queued with job ID: {job_id}")
             else:
                 logger.debug(f"⏭️  Skipping transcription for {file.content_type} file")
             
