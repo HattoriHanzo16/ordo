@@ -74,6 +74,40 @@ class RecordingService:
         finally:
             db.close()
     
+    def update_analysis(
+        self,
+        recording_id: int,
+        summary: Optional[str] = None,
+        action_items: Optional[List[Dict[str, Any]]] = None,
+        decisions: Optional[List[Dict[str, Any]]] = None,
+        status: str = "completed",
+        error: Optional[str] = None
+    ) -> Optional[Recording]:
+        """Update recording with analysis results"""
+        logger.info(f"📊 Updating analysis for recording {recording_id}")
+        
+        db = SessionLocal()
+        try:
+            recording = db.query(Recording).filter(Recording.id == recording_id).first()
+            if recording:
+                recording.summary = summary
+                recording.action_items = action_items or []
+                recording.decisions = decisions or []
+                recording.processing_status = status
+                if error:
+                    recording.processing_error = error
+                recording.updated_at = datetime.utcnow()
+                db.commit()
+                db.refresh(recording)
+                logger.info(f"✅ Analysis updated for recording {recording_id}")
+            return recording
+        except Exception as e:
+            logger.error(f"❌ Failed to update analysis for recording {recording_id}: {e}")
+            db.rollback()
+            raise e
+        finally:
+            db.close()
+    
     def get_recording(self, recording_id: int) -> Optional[Recording]:
         """Get a recording by ID"""
         db = SessionLocal()

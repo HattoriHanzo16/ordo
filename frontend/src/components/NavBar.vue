@@ -14,15 +14,15 @@
         
         <!-- Desktop Navigation -->
         <div class="hidden md:flex items-center space-x-8">
-          <a 
+          <router-link 
             v-for="item in navItems" 
             :key="item.name"
-            :href="item.href"
+            :to="item.path"
             class="text-dark-600 hover:text-primary-500 font-medium transition-colors duration-200"
-            :class="{ 'text-primary-500': item.active }"
+            :class="{ 'text-primary-500': $route.path === item.path }"
           >
             {{ item.name }}
-          </a>
+          </router-link>
         </div>
         
         <!-- Action Buttons -->
@@ -70,15 +70,15 @@
       <!-- Mobile Navigation -->
       <div v-if="mobileMenuOpen" class="md:hidden py-4 border-t border-gray-200">
         <div class="flex flex-col space-y-4">
-          <a 
+          <router-link 
             v-for="item in navItems" 
             :key="item.name"
-            :href="item.href"
+            :to="item.path"
             class="text-dark-600 hover:text-primary-500 font-medium transition-colors duration-200 py-2"
-            :class="{ 'text-primary-500': item.active }"
+            :class="{ 'text-primary-500': $route.path === item.path }"
           >
             {{ item.name }}
-          </a>
+          </router-link>
           <div class="flex flex-col space-y-3 pt-4 border-t border-gray-200">
             <button class="btn-secondary justify-center">
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,10 +106,10 @@ export default {
     return {
       mobileMenuOpen: false,
       navItems: [
-        { name: 'Dashboard', href: '#', active: true },
-        { name: 'Recordings', href: '#', active: false },
-        { name: 'Analytics', href: '#', active: false },
-        { name: 'Settings', href: '#', active: false }
+        { name: 'Dashboard', path: '/' },
+        { name: 'Recordings', path: '/recordings' },
+        { name: 'Analytics', path: '#' },
+        { name: 'Settings', path: '#' }
       ]
     }
   },

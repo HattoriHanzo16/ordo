@@ -8,6 +8,7 @@ from app.services.storage_service import storage_service
 from app.services.file_service import file_service
 from app.services.recording_service import recording_service
 from app.services.transcription_service import transcription_service
+from app.services.analysis_service import analysis_service
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ router = APIRouter()
 
 
 async def process_transcription(recording_id: int, media_url: str, file_content: bytes):
-    """Background task to process transcription for uploaded media files"""
+    """Background task to process transcription and analysis for uploaded media files"""
     logger.info(f"🎯 Starting background transcription for recording ID: {recording_id}")
     
     try:
@@ -48,12 +49,42 @@ async def process_transcription(recording_id: int, media_url: str, file_content:
                 transcript=transcription_result["transcript"],
                 transcript_with_speakers=transcription_result["transcript_with_speakers"],
                 duration=transcription_result["duration"],
-                status="completed"
+                status="analyzing"  # Set to analyzing status
             )
             logger.info(f"✅ Transcription completed for recording {recording_id}")
             
+            # Now perform analysis
+            logger.info(f"🧠 Starting analysis for recording {recording_id}")
+            
+            analysis_result = await analysis_service.analyze_transcript(
+                transcript=transcription_result["transcript"],
+                transcript_with_speakers=transcription_result["transcript_with_speakers"]
+            )
+            
+            if analysis_result["error"]:
+                # Update with analysis error but keep transcription
+                recording_service.update_analysis(
+                    recording_id=recording_id,
+                    summary=analysis_result.get("summary"),
+                    action_items=analysis_result.get("action_items", []),
+                    decisions=analysis_result.get("decisions", []),
+                    status="completed",  # Still mark as completed since transcription worked
+                    error=f"Analysis failed: {analysis_result['error']}"
+                )
+                logger.warning(f"⚠️  Analysis failed for recording {recording_id}: {analysis_result['error']}")
+            else:
+                # Update with successful analysis
+                recording_service.update_analysis(
+                    recording_id=recording_id,
+                    summary=analysis_result["summary"],
+                    action_items=analysis_result["action_items"],
+                    decisions=analysis_result["decisions"],
+                    status="completed"
+                )
+                logger.info(f"✅ Analysis completed for recording {recording_id}")
+            
     except Exception as e:
-        logger.error(f"❌ Transcription processing failed for recording {recording_id}: {e}")
+        logger.error(f"❌ Processing failed for recording {recording_id}: {e}")
         recording_service.update_transcription(
             recording_id=recording_id,
             transcript="",
@@ -118,9 +149,9 @@ async def upload_file(
         )
         logger.info(f"📝 Recording entry created with ID: {recording.id}")
         
-        # Start transcription process if it's an audio/video file
+        # Start transcription and analysis process if it's an audio/video file
         if should_transcribe(file.content_type or ""):
-            logger.info(f"🎤 Scheduling transcription for {file.filename}")
+            logger.info(f"🎤 Scheduling transcription and analysis for {file.filename}")
             background_tasks.add_task(
                 process_transcription,
                 recording.id,
@@ -193,9 +224,9 @@ async def upload_multiple_files(
             )
             logger.debug(f"📝 Recording entry created with ID: {recording.id}")
             
-            # Start transcription process if it's an audio/video file
+            # Start transcription and analysis process if it's an audio/video file
             if should_transcribe(file.content_type or ""):
-                logger.info(f"🎤 Scheduling transcription for {file.filename}")
+                logger.info(f"🎤 Scheduling transcription and analysis for {file.filename}")
                 background_tasks.add_task(
                     process_transcription,
                     recording.id,

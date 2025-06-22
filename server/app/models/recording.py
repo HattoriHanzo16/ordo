@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, JSON
 from datetime import datetime
 
 from app.models.database import Base
@@ -16,6 +16,12 @@ class Recording(Base):
     content_type = Column(String)
     transcript = Column(Text)
     transcript_with_speakers = Column(Text)  # For diarized transcript
+    
+    # Analysis fields
+    summary = Column(Text)  # Meeting/recording summary
+    action_items = Column(JSON)  # List of action items with details
+    decisions = Column(JSON)  # List of decisions with owners
+    
     processing_status = Column(String, default="pending")  # pending, processing, completed, failed
     processing_error = Column(Text)
     duration = Column(Float)  # Duration in seconds

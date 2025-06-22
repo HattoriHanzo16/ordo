@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
@@ -48,6 +48,22 @@ class BasicResponse(BaseModel):
     status: str
 
 
+class ActionItemResponse(BaseModel):
+    """Action item model"""
+    description: str
+    assignee: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: Optional[str] = None
+
+
+class DecisionResponse(BaseModel):
+    """Decision model"""
+    description: str
+    owner: Optional[str] = None
+    context: Optional[str] = None
+    impact: Optional[str] = None
+
+
 class RecordingResponse(BaseModel):
     """Recording response model"""
     id: int
@@ -58,6 +74,12 @@ class RecordingResponse(BaseModel):
     content_type: Optional[str]
     transcript: Optional[str]
     transcript_with_speakers: Optional[str]
+    
+    # Analysis fields
+    summary: Optional[str]
+    action_items: Optional[List[Dict[str, Any]]]
+    decisions: Optional[List[Dict[str, Any]]]
+    
     processing_status: str
     processing_error: Optional[str]
     duration: Optional[float]

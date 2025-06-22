@@ -2,11 +2,50 @@
   <section class="mb-12 animate-slide-up">
     <div class="max-w-4xl mx-auto">
       <div class="text-center mb-8">
-        <h2 class="text-3xl font-bold text-dark-900 mb-4">Upload New Recording</h2>
-        <p class="text-dark-600">
-          Drag and drop your media files here or click to browse. 
-          Supported formats: MP3, MP4, WAV, M4A, MOV, AVI
+        <h2 class="text-3xl font-bold text-dark-900 mb-4">Upload Your Meeting Recording</h2>
+        <p class="text-dark-600 mb-6">
+          Drop your meeting files here for instant AI transcription and analysis
         </p>
+        
+        <!-- Supported Formats -->
+        <div class="flex flex-wrap justify-center items-center gap-4 text-sm text-dark-500">
+          <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-.895 2-2 2s-2-.895-2-2 .895-2 2-2 2 .895 2 2zm12-3c0 1.105-.895 2-2 2s-2-.895-2-2 .895-2 2-2 2 .895 2 2z"></path>
+            </svg>
+            MP3
+          </span>
+          <span class="bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            MP4
+          </span>
+          <span class="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-.895 2-2 2s-2-.895-2-2 .895-2 2-2 2 .895 2 2zm12-3c0 1.105-.895 2-2 2s-2-.895-2-2 .895-2 2-2 2 .895 2 2z"></path>
+            </svg>
+            WAV
+          </span>
+          <span class="bg-orange-100 text-orange-700 px-3 py-1 rounded-full font-medium flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-.895 2-2 2s-2-.895-2-2 .895-2 2-2 2 .895 2 2zm12-3c0 1.105-.895 2-2 2s-2-.895-2-2 .895-2 2-2 2 .895 2 2z"></path>
+            </svg>
+            M4A
+          </span>
+          <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-medium flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            MOV
+          </span>
+          <span class="bg-red-100 text-red-700 px-3 py-1 rounded-full font-medium flex items-center">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+            AVI
+          </span>
+        </div>
       </div>
       
       <!-- Upload Area -->
@@ -30,10 +69,10 @@
           </div>
           <div>
             <h3 class="text-lg font-semibold text-dark-900 mb-2">
-              {{ isDragging ? 'Drop your files here' : 'Upload your media files' }}
+              {{ isDragging ? 'Drop your meeting files here' : 'Upload your meeting recordings' }}
             </h3>
             <p class="text-dark-500 mb-4">
-              Drag and drop files here, or 
+              Drop your meeting files here, or 
               <button 
                 @click="triggerFileInput"
                 class="text-primary-500 hover:text-primary-600 font-medium"
