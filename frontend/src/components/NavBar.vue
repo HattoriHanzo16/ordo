@@ -182,9 +182,8 @@ export default {
       searchTimeout: null,
       apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
       navItems: [
-        { name: 'Dashboard', path: '/' },
+        { name: 'Home', path: '/' },
         { name: 'Recordings', path: '/recordings' },
-        { name: 'Analytics', path: '#' },
         { name: 'Settings', path: '/settings' }
       ]
     }

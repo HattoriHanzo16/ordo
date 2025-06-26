@@ -7,9 +7,26 @@
     <main class="container mx-auto px-4 py-8">
       <!-- Hero Section -->
       <div class="text-center mb-16 animate-fade-in">
-        <h1 class="text-5xl font-bold text-dark-900 mb-6">
-          Upload your <span class="text-primary-500">meetings</span>
-        </h1>
+        <!-- Hero Content with Integrated Dolphin -->
+        <div class="flex items-center justify-center gap-4 mb-6">
+          <h1 class="text-5xl font-bold text-dark-900">
+            Upload your <span class="text-primary-500">meetings</span>
+          </h1>
+          <div class="animate-float">
+            <div class="relative">
+              <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center shadow-lg">
+                <img 
+                  src="/logo.svg" 
+                  alt="Ordo Dolphin" 
+                  class="h-10 w-10 opacity-90"
+                />
+              </div>
+              <!-- Subtle glow effect -->
+              <div class="absolute inset-0 w-16 h-16 bg-primary-300 rounded-full blur-lg opacity-20 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
+        
         <p class="text-xl text-dark-600 max-w-3xl mx-auto leading-relaxed mb-4">
           We analyze and transcribe them automatically
         </p>

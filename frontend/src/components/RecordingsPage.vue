@@ -173,7 +173,7 @@
                     <span
                       v-for="label in recording.labels"
                       :key="label.label_name"
-                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                      class="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-medium text-white whitespace-nowrap"
                       :style="{ backgroundColor: label.label_color }"
                       :title="`Confidence: ${Math.round((label.confidence || 0.8) * 100)}%`"
                     >
@@ -288,8 +288,7 @@
                 v-if="recording.processing_status === 'completed' && recording.summary"
                 @click="labelRecording(recording.id)"
                 :disabled="labelingInProgress[recording.id]"
-                class="px-3 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                :title="'Label ' + recording.original_filename + ' with AI'"
+                class="flex items-center gap-2 px-3 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 border border-purple-200 hover:border-purple-300 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
               >
                 <svg v-if="!labelingInProgress[recording.id]" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
@@ -298,6 +297,8 @@
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
+                <span v-if="!labelingInProgress[recording.id]">Label with AI</span>
+                <span v-else>Labeling...</span>
               </button>
               <button 
                 @click="deleteRecording(recording.id)"
