@@ -90,9 +90,13 @@ class RecordingService:
         try:
             recording = db.query(Recording).filter(Recording.id == recording_id).first()
             if recording:
-                recording.summary = summary
-                recording.action_items = action_items or []
-                recording.decisions = decisions or []
+                # Only update fields that are explicitly provided
+                if summary is not None:
+                    recording.summary = summary
+                if action_items is not None:
+                    recording.action_items = action_items
+                if decisions is not None:
+                    recording.decisions = decisions
                 recording.processing_status = status
                 if error:
                     recording.processing_error = error

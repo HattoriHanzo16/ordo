@@ -80,18 +80,18 @@ def process_transcription_task(recording_id: int, media_url: str, file_content: 
                     )
                     logger.warning(f"⚠️  Analysis failed for recording {recording_id}: {analysis_result['error']}")
                 else:
-                    # Update with successful analysis
+                    # Update with successful analysis and start visual generation
                     recording_service.update_analysis(
                         recording_id=recording_id,
                         summary=analysis_result["summary"],
                         action_items=analysis_result["action_items"],
                         decisions=analysis_result["decisions"],
-                        status="completed"
+                        status="generating_visuals"  # Set status to generating visuals
                     )
                     logger.info(f"✅ Analysis completed for recording {recording_id}")
                     
                     # Generate visual summary using DALL·E 3
-                    logger.info(f"🎨 Generating visual summary for recording {recording_id}")
+                    logger.info(f"🎨 Starting visual summary generation for recording {recording_id}")
                     try:
                         # Get recording object to access filename
                         current_recording = recording_service.get_recording(recording_id)
@@ -108,18 +108,34 @@ def process_transcription_task(recording_id: int, media_url: str, file_content: 
                         )
                         
                         if visual_summary_url:
-                            # Update recording with visual summary URL
+                            # Update recording with visual summary URL and mark as completed
                             recording_service.update_recording(
                                 recording_id=recording_id,
                                 visual_summary_url=visual_summary_url
                             )
+                            # Update status to completed
+                            recording_service.update_analysis(
+                                recording_id=recording_id,
+                                status="completed"
+                            )
                             logger.info(f"✅ Visual summary generated and saved for recording {recording_id}")
                         else:
+                            # Failed to generate visual summary, but mark as completed since analysis succeeded
+                            recording_service.update_analysis(
+                                recording_id=recording_id,
+                                status="completed",
+                                error="Visual summary generation failed"
+                            )
                             logger.warning(f"⚠️  Failed to generate visual summary for recording {recording_id}")
                             
                     except Exception as visual_error:
                         logger.error(f"❌ Error generating visual summary for recording {recording_id}: {visual_error}")
-                        # Don't fail the entire process if visual summary fails
+                        # Mark as completed with error since analysis succeeded
+                        recording_service.update_analysis(
+                            recording_id=recording_id,
+                            status="completed",
+                            error=f"Visual summary generation failed: {str(visual_error)}"
+                        )
                 
                 # Processing completed
                 logger.info(f"✅ Processing completed for recording {recording_id} (transcription + analysis + visual)")

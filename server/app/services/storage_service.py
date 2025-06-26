@@ -221,42 +221,40 @@ class SupabaseStorageService:
             logger.error(f"❌ Failed to delete {storage_path}: {str(e)}")
             return False
 
-    def delete_visual_summary(self, recording_id: int) -> bool:
+    def delete_visual_summary(self, recording_id: int, visual_summary_url: str = None) -> bool:
         """
         Delete AI-generated visual summary for a recording
         
         Args:
             recording_id: The recording ID
+            visual_summary_url: The URL of the visual summary to delete
             
         Returns:
             bool: True if deletion was successful, False otherwise
         """
-        # Visual summaries are stored with pattern: visual_summary_{recording_id}.png
-        visual_summary_paths = [
-            f"uploads/visual_summary_{recording_id}.png",
-            # Also check in date-based folders (in case the pattern changed)
-            f"uploads/{datetime.now().strftime('%Y/%m/%d')}/visual_summary_{recording_id}.png",
-        ]
+        if not visual_summary_url:
+            logger.warning(f"🎨 No visual summary URL provided for recording {recording_id}")
+            return False
+            
+        if not settings.storage_bucket_name:
+            logger.error("❌ Cannot delete visual summary: storage bucket not configured")
+            return False
         
-        success = False
-        for path in visual_summary_paths:
-            try:
-                logger.info(f"🎨 Attempting to delete visual summary: {path}")
-                response = self.client.storage.from_(settings.storage_bucket_name).remove([path])
+        try:
+        
+            
+            response = self.client.storage.from_(settings.storage_bucket_name).remove([visual_summary_url])
+            
+            if (isinstance(response, list) or 
+                (hasattr(response, 'status_code') and response.status_code in [200, 204])):
+                logger.info(f"✅ Successfully deleted visual summary: {visual_summary_url}")
+                return True
+            else:
+                logger.warning(f"⚠️  Unexpected response for {visual_summary_url}, assuming success")
+                return True
                 
-                if (isinstance(response, list) or 
-                    (hasattr(response, 'status_code') and response.status_code in [200, 204])):
-                    logger.info(f"✅ Successfully deleted visual summary: {path}")
-                    success = True
-                    break  # Found and deleted, no need to try other paths
-                    
-            except Exception as e:
-                logger.debug(f"Visual summary not found at {path}: {str(e)}")
-                continue
-        
-        if not success:
-            logger.info(f"🎨 No visual summary found to delete for recording {recording_id}")
-        
-        return success
+        except Exception as e:
+            logger.error(f"❌ Failed to delete visual summary for recording {recording_id}: {str(e)}")
+            return False
 
 storage_service = SupabaseStorageService()

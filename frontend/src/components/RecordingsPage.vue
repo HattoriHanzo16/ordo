@@ -357,7 +357,7 @@ export default {
     
     processingCount() {
       return this.recordings.filter(r => 
-        ['pending', 'processing', 'analyzing'].includes(r.processing_status)
+        ['pending', 'processing', 'analyzing', 'generating_visuals'].includes(r.processing_status)
       ).length
     },
     
@@ -469,6 +469,7 @@ export default {
         'completed': 'Completed',
         'processing': 'Transcribing',
         'analyzing': 'Analyzing',
+        'generating_visuals': 'Generating AI Visuals',
         'pending': 'Pending',
         'failed': 'Failed',
         'error': 'Error'
@@ -477,13 +478,14 @@ export default {
     },
     
     isProcessing(status) {
-      return ['processing', 'analyzing'].includes(status)
+      return ['processing', 'analyzing', 'generating_visuals'].includes(status)
     },
     
     getProcessingMessage(status) {
       const messages = {
         'processing': 'Transcribing audio...',
-        'analyzing': 'Analyzing content & creating embeddings...'
+        'analyzing': 'Analyzing content & extracting insights...',
+        'generating_visuals': 'Creating AI-powered visual summary...'
       }
       return messages[status] || 'Processing...'
     },
@@ -491,8 +493,9 @@ export default {
     getProcessingProgress(status) {
       const progress = {
         'pending': 0,
-        'processing': 60,
-        'analyzing': 90,
+        'processing': 40,
+        'analyzing': 70,
+        'generating_visuals': 90,
         'completed': 100
       }
       return progress[status] || 0
@@ -503,6 +506,7 @@ export default {
         'completed': 'bg-green-100 text-green-800',
         'processing': 'bg-blue-100 text-blue-800',
         'analyzing': 'bg-purple-100 text-purple-800',
+        'generating_visuals': 'bg-pink-100 text-pink-800',
         'pending': 'bg-yellow-100 text-yellow-800',
         'failed': 'bg-red-100 text-red-800',
         'error': 'bg-red-100 text-red-800'
@@ -515,6 +519,7 @@ export default {
         'completed': 'bg-green-400',
         'processing': 'bg-blue-400',
         'analyzing': 'bg-purple-400',
+        'generating_visuals': 'bg-pink-400',
         'pending': 'bg-yellow-400',
         'failed': 'bg-red-400',
         'error': 'bg-red-400'

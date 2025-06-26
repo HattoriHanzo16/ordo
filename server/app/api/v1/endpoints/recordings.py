@@ -99,7 +99,7 @@ async def delete_recording(recording_id: int):
         # Delete AI-generated visual summary if it exists
         if recording.visual_summary_url:
             logger.info(f"🎨 Deleting visual summary for recording {recording_id}")
-            visual_deleted = storage_service.delete_visual_summary(recording_id)
+            visual_deleted = storage_service.delete_visual_summary(recording_id, recording.visual_summary_url)
             if not visual_deleted:
                 logger.warning(f"⚠️  Failed to delete visual summary for recording {recording_id}")
         
