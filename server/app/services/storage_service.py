@@ -186,6 +186,77 @@ class SupabaseStorageService:
             # Fallback to constructed URL if get_public_url fails
             return f"{settings.supabase_url}/storage/v1/object/public/{settings.storage_bucket_name}/{storage_path}"
 
+    def delete_file(self, storage_path: str) -> bool:
+        """
+        Delete a file from Supabase Storage
+        
+        Args:
+            storage_path: The storage path of the file to delete
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        if not storage_path or not storage_path.strip():
+            logger.error("❌ Cannot delete file: storage_path is empty")
+            return False
+            
+        if not settings.storage_bucket_name:
+            logger.error("❌ Cannot delete file: storage bucket not configured")
+            return False
+        
+        try:
+            logger.info(f"🗑️  Deleting file: {storage_path}")
+            response = self.client.storage.from_(settings.storage_bucket_name).remove([storage_path])
+            
+            # Handle successful deletion (response is typically a list or has status_code)
+            if (isinstance(response, list) or 
+                (hasattr(response, 'status_code') and response.status_code in [200, 204])):
+                logger.info(f"✅ Successfully deleted: {storage_path}")
+                return True
+            else:
+                logger.warning(f"⚠️  Unexpected response for {storage_path}, assuming success")
+                return True
+                
+        except Exception as e:
+            logger.error(f"❌ Failed to delete {storage_path}: {str(e)}")
+            return False
 
-# Global Supabase storage service instance
-storage_service = SupabaseStorageService() 
+    def delete_visual_summary(self, recording_id: int) -> bool:
+        """
+        Delete AI-generated visual summary for a recording
+        
+        Args:
+            recording_id: The recording ID
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        # Visual summaries are stored with pattern: visual_summary_{recording_id}.png
+        visual_summary_paths = [
+            f"uploads/visual_summary_{recording_id}.png",
+            # Also check in date-based folders (in case the pattern changed)
+            f"uploads/{datetime.now().strftime('%Y/%m/%d')}/visual_summary_{recording_id}.png",
+        ]
+        
+        success = False
+        for path in visual_summary_paths:
+            try:
+                logger.info(f"🎨 Attempting to delete visual summary: {path}")
+                response = self.client.storage.from_(settings.storage_bucket_name).remove([path])
+                
+                if (isinstance(response, list) or 
+                    (hasattr(response, 'status_code') and response.status_code in [200, 204])):
+                    logger.info(f"✅ Successfully deleted visual summary: {path}")
+                    success = True
+                    break  # Found and deleted, no need to try other paths
+                    
+            except Exception as e:
+                logger.debug(f"Visual summary not found at {path}: {str(e)}")
+                continue
+        
+        if not success:
+            logger.info(f"🎨 No visual summary found to delete for recording {recording_id}")
+        
+        return success
+
+storage_service = SupabaseStorageService()

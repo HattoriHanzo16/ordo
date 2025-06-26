@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from app.models.schemas import RecordingResponse, RecordingListResponse
 from app.services.recording_service import recording_service
+from app.services.storage_service import storage_service
 
 logger = logging.getLogger(__name__)
 
@@ -77,16 +78,40 @@ async def delete_recording(recording_id: int):
     logger.info(f"🗑️  Attempting to delete recording with ID: {recording_id}")
     
     try:
-        # Run database operation in thread pool to avoid blocking
+        # First get the recording to access its storage path
         loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor() as executor:
+            recording = await loop.run_in_executor(
+                executor, recording_service.get_recording, recording_id
+            )
+        
+        if not recording:
+            logger.warning(f"⚠️  Recording not found for deletion: {recording_id}")
+            raise HTTPException(status_code=404, detail="Recording not found")
+        
+        # Delete files from storage
+        if recording.storage_path:
+            logger.info(f"🗑️  Deleting recording file: {recording.storage_path}")
+            storage_deleted = storage_service.delete_file(recording.storage_path)
+            if not storage_deleted:
+                logger.warning(f"⚠️  Failed to delete recording file: {recording.storage_path}")
+        
+        # Delete AI-generated visual summary if it exists
+        if recording.visual_summary_url:
+            logger.info(f"🎨 Deleting visual summary for recording {recording_id}")
+            visual_deleted = storage_service.delete_visual_summary(recording_id)
+            if not visual_deleted:
+                logger.warning(f"⚠️  Failed to delete visual summary for recording {recording_id}")
+        
+        # Run database operation in thread pool to avoid blocking
         with ThreadPoolExecutor() as executor:
             success = await loop.run_in_executor(
                 executor, recording_service.delete_recording, recording_id
             )
         
         if not success:
-            logger.warning(f"⚠️  Recording not found for deletion: {recording_id}")
-            raise HTTPException(status_code=404, detail="Recording not found")
+            logger.warning(f"⚠️  Failed to delete recording from database: {recording_id}")
+            raise HTTPException(status_code=500, detail="Failed to delete recording from database")
         
         logger.info(f"✅ Successfully deleted recording: {recording_id}")
         return {"message": "Recording deleted successfully"}
@@ -95,4 +120,4 @@ async def delete_recording(recording_id: int):
         raise
     except Exception as e:
         logger.error(f"❌ Failed to delete recording {recording_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete recording") 
+        raise HTTPException(status_code=500, detail="Failed to delete recording")
