@@ -115,7 +115,8 @@ class RecordingService:
     def update_recording(
         self,
         recording_id: int,
-        visual_summary_url: Optional[str] = None
+        visual_summary_url: Optional[str] = None,
+        labels: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[Recording]:
         """Update recording with additional data like visual summary"""
         logger.info(f"📝 Updating recording {recording_id}")
@@ -126,6 +127,8 @@ class RecordingService:
             if recording:
                 if visual_summary_url:
                     recording.visual_summary_url = visual_summary_url
+                if labels is not None:
+                    recording.labels = labels
                 recording.updated_at = datetime.utcnow()
                 db.commit()
                 db.refresh(recording)

@@ -23,6 +23,7 @@ class Recording(Base):
     action_items = Column(JSON)  # List of action items with details
     decisions = Column(JSON)  # List of decisions with owners
     visual_summary_url = Column(String)  # DALL·E 3 generated visual summary
+    labels = Column(JSON)  # List of applied labels based on rules
     
     processing_status = Column(String, default="pending")  # pending, processing, completed, failed
     processing_error = Column(Text)

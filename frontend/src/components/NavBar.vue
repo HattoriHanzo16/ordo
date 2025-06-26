@@ -185,7 +185,7 @@ export default {
         { name: 'Dashboard', path: '/' },
         { name: 'Recordings', path: '/recordings' },
         { name: 'Analytics', path: '#' },
-        { name: 'Settings', path: '#' }
+        { name: 'Settings', path: '/settings' }
       ]
     }
   },

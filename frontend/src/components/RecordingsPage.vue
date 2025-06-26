@@ -166,7 +166,21 @@
                 <h3 class="font-semibold text-dark-900 mb-1 truncate" :title="recording.original_filename">
                   {{ recording.original_filename }}
                 </h3>
-                <p class="text-sm text-dark-500">{{ formatDate(recording.created_at) }}</p>
+                <div class="flex items-center space-x-2 mb-1">
+                  <p class="text-sm text-dark-500">{{ formatDate(recording.created_at) }}</p>
+                  <!-- Labels -->
+                  <div v-if="recording.labels && recording.labels.length" class="flex items-center space-x-1">
+                    <span
+                      v-for="label in recording.labels"
+                      :key="label.label_name"
+                      class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                      :style="{ backgroundColor: label.label_color }"
+                      :title="`Confidence: ${Math.round((label.confidence || 0.8) * 100)}%`"
+                    >
+                      {{ label.label_name }}
+                    </span>
+                  </div>
+                </div>
               </div>
               <div class="ml-3">
                 <span 
@@ -271,6 +285,21 @@
                 Play Audio
               </button>
               <button 
+                v-if="recording.processing_status === 'completed' && recording.summary"
+                @click="labelRecording(recording.id)"
+                :disabled="labelingInProgress[recording.id]"
+                class="px-3 py-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                :title="'Label ' + recording.original_filename + ' with AI'"
+              >
+                <svg v-if="!labelingInProgress[recording.id]" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                </svg>
+                <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </button>
+              <button 
                 @click="deleteRecording(recording.id)"
                 class="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                 :title="'Delete ' + recording.original_filename"
@@ -315,7 +344,8 @@ export default {
       currentPage: 0,
       pageSize: 12,
       apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
-      pollingInterval: null
+      pollingInterval: null,
+      labelingInProgress: {}
     }
   },
   computed: {
@@ -415,6 +445,52 @@ export default {
     
 
     
+    async labelRecording(recordingId) {
+      console.log('Starting labeling for recording:', recordingId)
+      try {
+        // Set loading state
+        this.labelingInProgress[recordingId] = true
+        
+        const response = await fetch(`${this.apiBaseUrl}/api/v1/labeling/apply/${recordingId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        
+        console.log('Response status:', response.status)
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.detail || 'Failed to apply labels')
+        }
+        
+        const appliedLabels = await response.json()
+        console.log('Applied labels:', appliedLabels)
+        
+        // Update the recording with new labels
+        const recordingIndex = this.recordings.findIndex(r => r.id === recordingId)
+        if (recordingIndex !== -1) {
+          this.recordings[recordingIndex].labels = appliedLabels
+        }
+        
+        // Show success message
+        if (appliedLabels.length > 0) {
+          console.log(`Applied ${appliedLabels.length} labels to recording`)
+          // You might want to show a toast notification here
+        } else {
+          console.log('No labels were applied to this recording')
+          // You might want to show an info message here
+        }
+        
+      } catch (error) {
+        console.error('Error applying labels:', error)
+        // You might want to show an error toast here
+      } finally {
+        this.labelingInProgress[recordingId] = false
+      }
+    },
+
     playRecording(recording) {
       // Open the audio file in a new tab or implement an audio player
       window.open(recording.media_url, '_blank')

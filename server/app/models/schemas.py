@@ -64,6 +64,13 @@ class DecisionResponse(BaseModel):
     impact: Optional[str] = None
 
 
+class AppliedLabel(BaseModel):
+    """Schema for an applied label on a recording"""
+    label_name: str
+    label_color: str
+    confidence: Optional[float] = None  # AI confidence in applying this label
+
+
 class RecordingResponse(BaseModel):
     """Recording response model"""
     id: int
@@ -80,10 +87,41 @@ class RecordingResponse(BaseModel):
     action_items: Optional[List[Dict[str, Any]]]
     decisions: Optional[List[Dict[str, Any]]]
     visual_summary_url: Optional[str]
+    labels: Optional[List[AppliedLabel]] = None
     
     processing_status: str
     processing_error: Optional[str]
     duration: Optional[float]
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class LabelingRuleCreate(BaseModel):
+    """Schema for creating a new labeling rule"""
+    label_name: str = Field(..., min_length=1, max_length=100)
+    label_color: str = Field(..., pattern=r'^#[0-9A-Fa-f]{6}$')  # Hex color validation
+    rule_description: str = Field(..., min_length=10)
+    is_active: bool = True
+
+
+class LabelingRuleUpdate(BaseModel):
+    """Schema for updating a labeling rule"""
+    label_name: Optional[str] = Field(None, min_length=1, max_length=100)
+    label_color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
+    rule_description: Optional[str] = Field(None, min_length=10)
+    is_active: Optional[bool] = None
+
+
+class LabelingRuleResponse(BaseModel):
+    """Schema for labeling rule response"""
+    id: int
+    label_name: str
+    label_color: str
+    rule_description: str
+    is_active: bool
     created_at: datetime
     updated_at: datetime
     
