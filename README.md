@@ -8,6 +8,14 @@
 
 Ordo is a sophisticated, full-stack platform that automatically transcribes, analyzes, and extracts meaningful insights from your meeting recordings. Built with modern technologies and powered by OpenAI's latest models, it turns hours of audio into searchable transcripts, visual summaries, and actionable intelligence.
 
+## 🎬 Demo
+
+Watch Ordo in action! See how it transforms meeting recordings into actionable insights:
+
+[![Demo Video](https://img.shields.io/badge/▶%20Watch%20Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtu.be/85sU_yyz0aE)
+
+## 🏆 Tech Stack
+
 [![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=flat&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=flat&logo=vuedotjs&logoColor=4FC08D)](https://vuejs.org/)
 [![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=flat&logo=openai&logoColor=white)](https://openai.com/)
